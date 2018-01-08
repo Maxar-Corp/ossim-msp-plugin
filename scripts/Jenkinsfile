@@ -1,0 +1,90 @@
+def notifyObj
+node ( "" ) {
+    env.WORKSPACE = pwd()
+    env.MAKE_VERBOSE = "${ MAKE_VERBOSE }"
+    env.OSSIM_INSTALL_PREFIX = "${ env.WORKSPACE }/ossim"
+    env.MSP_INSTALL_DIR = "/usr/local/msp-1.5"
+    env.MSP_HOME = "/usr/local/msp-1.5"
+    env.OPENCV_HOME="/usr/local/opencv-3.2"
+    try {
+        stage( "Checkout" ) {
+            dir( "ossim-isa-plugin" ) {
+                git branch: "${ OSSIM_GIT_BRANCH }", 
+                url: "${GIT_PRIVATE_SERVER_URL}/ossim-isa-plugin.git", 
+                credentialsId: "${GIT_CREDENTIALS_ID}"
+            }
+        }
+
+        echo "WORKSPACE: ${ env.WORKSPACE }"
+
+        stage( "Download Artifacts" ) {
+          dir( "${ env.WORKSPACE }" ) {
+            step ([$class: "CopyArtifact",
+                   projectName: "ossim-ci-${OSSIM_GIT_BRANCH}",
+                   filter: "ossim-ci-${OSSIM_GIT_BRANCH}.tgz",
+                   flatten: true])
+            sh "tar xvfz ossim-ci-${OSSIM_GIT_BRANCH}.tgz"
+            notifyObj = load "${env.WORKSPACE}/ossim-ci/jenkins/pipeline/notify.groovy"
+            
+            step ([ $class: "CopyArtifact",
+                    projectName: "ossim-${ OSSIM_GIT_BRANCH }",
+                    filter: "artifacts/ossim-install.tgz",
+                    flatten: true ])
+          }
+        }
+
+        stage( "Build" ) {
+            sh """
+                echo "WORKSPACE            = ${env.WORKSPACE}"
+                echo "OSSIM_INSTALL_PREFIX = ${env.OSSIM_INSTALL_PREFIX}"
+                mkdir -p ${ env.OSSIM_INSTALL_PREFIX }
+                tar xfz ossim-install.tgz -C ${ env.OSSIM_INSTALL_PREFIX }
+                mv ${ env.OSSIM_INSTALL_PREFIX }/install/* ${ env.OSSIM_INSTALL_PREFIX }
+                 
+                rm -rf ${ env.WORKSPACE }/build/CMakeCache.txt
+                ${ env.WORKSPACE }/ossim-isa-plugin/scripts/buildNative.sh
+            """
+        }
+
+        stage("Archive"){
+           dir( "${env.WORKSPACE}/ossim-isa-plugin" ) {
+              sh "tar cvfz ossim-isa-plugin-install.tgz -C install ."
+              archiveArtifacts artifacts:"*.tgz"
+           }
+       }
+       stage("Deliver Artifacts"){
+            dir("${env.WORKSPACE}/ossim-isa-plugin"){
+
+              step([$class: 'S3BucketPublisher',
+                    dontWaitForConcurrentBuildCompletion: false,
+                    entries: [
+                               [bucket: "o2-delivery/${OSSIM_GIT_BRANCH}/ossim",
+                               excludedFile: '',
+                               flatten: false,
+                               gzipFiles: false,
+                               keepForever: false,
+                               managedArtifacts: false,
+                               noUploadOnFailure: false,
+                               selectedRegion: 'us-east-1',
+                               showDirectlyInBrowser: true,
+                               sourceFile: "*.tgz",
+                               storageClass: 'STANDARD',
+                               uploadFromSlave: false,
+                               useServerSideEncryption: false]],
+
+                    profileName: 'o2-cicd',
+                    userMetadata: []])
+            }
+       }
+    }
+
+    catch( e ) {
+        println "ERROR: ${e} "
+        currentBuild.result = "FAILED"
+        notifyObj?.notifyFailed()
+    }
+
+    stage( "Clean Workspace" ) {
+        step([ $class: 'WsCleanup' ])
+    }
+}
