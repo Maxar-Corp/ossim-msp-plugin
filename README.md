@@ -1,5 +1,5 @@
 # ossim-isa-plugin
-Contains OSSIM plugin in support of 3DISA MERIT project. 
+Contains OSSIM plugin providing MSP functionality (source selection, CSM sensor models, triangulation, mensuration). 
 
 Instructions for Building OSSIM with MSP
 
