@@ -146,24 +146,23 @@ void ossimMspTool::loadJSON(const Json::Value& queryRoot)
    {
       // Fetch service name and route accordingly:
       string serviceName = queryRoot["service"].asString();
-      shared_ptr<ServiceBase> service;
       if (serviceName      == "getVersion")
-         service.reset(new VersionService);
+         m_mspService.reset(new VersionService);
       else if (serviceName == "sensorModels")
-         service.reset(new SensorModelService);
+         m_mspService.reset(new SensorModelService);
       else if (serviceName == "sourceSelection")
-         service.reset(new SourceSelectionService);
+         m_mspService.reset(new SourceSelectionService);
       else if (serviceName == "triangulation")
-         service.reset(new TriangulationService);
+         m_mspService.reset(new TriangulationService);
       else if (serviceName == "mensuration")
-         service.reset(new MensurationService);
+         m_mspService.reset(new MensurationService);
       else
       {
          xmsg<<"Wrong service <"<<serviceName<<"> requested."<<endl;
          throw ossimException(xmsg.str());
       }
 
-      service->loadJSON(queryRoot);
+      m_mspService->loadJSON(queryRoot);
    }
    catch(ossimException &e)
    {
@@ -191,22 +190,26 @@ bool ossimMspTool::execute()
       m_mspService->saveJSON(m_responseJSON);
 
       // Serialize JSON object for return:
-      (*m_outputStream) << m_responseJSON;
+      if (m_outputStream)
+         (*m_outputStream) << m_responseJSON;
    }
    catch(ossimException &e)
    {
       cerr<<"Exception: "<<e.what()<<endl;
-      *m_outputStream<<"{ \"ERROR\": \"" << e.what() << "\" }\n"<<endl;
+      if (m_outputStream)
+         *m_outputStream<<"{ \"ERROR\": \"" << e.what() << "\" }\n"<<endl;
    }
 
    // close any open file streams:
-   ofstream* so = dynamic_cast<ofstream*>(m_outputStream);
-   if (so)
+   if (m_outputStream)
    {
-      so->close();
-      delete so;
+      ofstream* so = dynamic_cast<ofstream*>(m_outputStream);
+      if (so)
+      {
+         so->close();
+         delete so;
+      }
    }
-
    return true;
 }
 
