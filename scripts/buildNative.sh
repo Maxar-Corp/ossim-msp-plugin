@@ -1,7 +1,7 @@
 #!/bin/bash
 #################################################################
 #
-# Script to build the ossim-isa-plugin library and dedicated 
+# Script to build the ossim-msp-plugin library and dedicated 
 # native application.
 #
 # The build environment must have the following variables defined 

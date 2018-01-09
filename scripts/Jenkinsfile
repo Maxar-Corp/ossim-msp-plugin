@@ -8,9 +8,9 @@ node ( "" ) {
     env.OPENCV_HOME="/usr/local/opencv-3.2"
     try {
         stage( "Checkout" ) {
-            dir( "ossim-isa-plugin" ) {
+            dir( "ossim-msp-plugin" ) {
                 git branch: "${ OSSIM_GIT_BRANCH }", 
-                url: "${GIT_PRIVATE_SERVER_URL}/ossim-isa-plugin.git", 
+                url: "${GIT_PRIVATE_SERVER_URL}/ossim-msp-plugin.git", 
                 credentialsId: "${GIT_CREDENTIALS_ID}"
             }
         }
@@ -42,18 +42,18 @@ node ( "" ) {
                 mv ${ env.OSSIM_INSTALL_PREFIX }/install/* ${ env.OSSIM_INSTALL_PREFIX }
                  
                 rm -rf ${ env.WORKSPACE }/build/CMakeCache.txt
-                ${ env.WORKSPACE }/ossim-isa-plugin/scripts/buildNative.sh
+                ${ env.WORKSPACE }/ossim-msp-plugin/scripts/buildNative.sh
             """
         }
 
         stage("Archive"){
-           dir( "${env.WORKSPACE}/ossim-isa-plugin" ) {
-              sh "tar cvfz ossim-isa-plugin-install.tgz -C install ."
+           dir( "${env.WORKSPACE}/ossim-msp-plugin" ) {
+              sh "tar cvfz ossim-msp-plugin-install.tgz -C install ."
               archiveArtifacts artifacts:"*.tgz"
            }
        }
        stage("Deliver Artifacts"){
-            dir("${env.WORKSPACE}/ossim-isa-plugin"){
+            dir("${env.WORKSPACE}/ossim-msp-plugin"){
 
               step([$class: 'S3BucketPublisher',
                     dontWaitForConcurrentBuildCompletion: false,
