@@ -1,4 +1,4 @@
-# ossim-isa-plugin
+# ossim-msp-plugin
 Contains OSSIM plugin providing MSP functionality (source selection, CSM sensor models, triangulation, mensuration). 
 
 Instructions for Building OSSIM with MSP
