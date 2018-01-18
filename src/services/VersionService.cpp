@@ -15,6 +15,8 @@
 #include <services/VersionService.h>
 #include <Config.h>
 #include <ossim/ossimVersion.h>
+#include <MSPVersionUtils/MSPVersionInformation.h>
+#include <sstream>
 
 using namespace std;
 
@@ -22,13 +24,17 @@ namespace ossimMsp
 {
 void VersionService::saveJSON(Json::Value& responseJson) const
 {
+   string MSPServicesVersion = MSP::MSPVersionInformation::getMSPServicesVersionsString();
+   string MSPPluginsVersions = MSP::MSPVersionInformation::getMSPPluginsVersionsString();
+
    // Represent results in response JSON:
    responseJson["ossimVersion"] = OSSIM_VERSION;
    responseJson["ossimGitRevision"] = OSSIM_REVISION;
    responseJson["ossimBuildDate"] = OSSIM_BUILD_DATE;
-   responseJson["ossimIsaGitRevision"] = OSSIM_MSP_GIT_REVISION;
-   responseJson["ossimIsaBuildDate"] = OSSIM_MSP_BUILD_DATE;
-
+   responseJson["ossimMspPluginGitRevision"] = OSSIM_MSP_GIT_REVISION;
+   responseJson["ossimMspPluginBuildDate"] = OSSIM_MSP_BUILD_DATE;
+   responseJson["MSPServicesVersion"] = MSPServicesVersion;
+   responseJson["MSPPluginsVersions"] = MSPPluginsVersions;
 }
 }
 
