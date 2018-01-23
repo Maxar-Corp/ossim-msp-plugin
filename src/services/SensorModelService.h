@@ -21,7 +21,7 @@ class SensorModelService : public ServiceBase
 {
 public:
    SensorModelService();
-   ~SensorModelService();
+   virtual ~SensorModelService();
 
    /**
     * Does nothing. The work is done in saveJSON().
