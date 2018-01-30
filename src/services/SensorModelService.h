@@ -8,8 +8,8 @@
 #define SensorModelService_HEADER 1
 
 #include <services/ServiceBase.h>
-#include <common/Image.h>
 #include <memory>
+#include "../common/MspImage.h"
 
 namespace ossimMsp
 {
@@ -48,7 +48,7 @@ public:
 private:
    std::string m_method;
    std::string m_application;
-   std::shared_ptr<Image> m_image;
+   std::shared_ptr<MspImage> m_image;
 };
 
 } // End namespace ossimMsp

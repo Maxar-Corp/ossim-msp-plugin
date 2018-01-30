@@ -9,7 +9,7 @@
 #include <services/MensurationService.h>
 #include <ossim/base/ossimException.h>
 #include <PointExtraction/PointExtractionService.h>
-#include<geometry/GroundPointResult.h>
+#include <geometry/GroundPointResult.h>
 #include <csmutil/CsmSensorModelList.h>
 #include <common/SessionManager.h>
 
@@ -31,6 +31,7 @@ void MensurationService::loadJSON(const Json::Value& queryRoot)
 {
    ostringstream xmsg;
    xmsg<<"MensurationService::loadJSON() EXCEPTION: ";
+   Json::Value listJson;
 
    if (queryRoot.isMember("sessionId"))
    {
@@ -51,23 +52,19 @@ void MensurationService::loadJSON(const Json::Value& queryRoot)
       //m_imageList = photoBlock->getImageList();
    }
    else if (queryRoot.isMember("photoblock"))
-   {
-      PhotoBlock pb (queryRoot["photoblock"]);
+      listJson = queryRoot["photoblock"]["images"];
+   else if (queryRoot.isMember("images"))
+      listJson = queryRoot["images"];
 
-   }
-   else
+   if (!listJson.empty())
    {
-      if (queryRoot.isMember("images"))
+      unsigned int count = listJson.size();
+      for (unsigned int i=0; i<count; ++i)
       {
-         const Json::Value& listJson = queryRoot["images"];
-         unsigned int count = listJson.size();
-         for (unsigned int i=0; i<count; ++i)
-         {
-            const Json::Value& jsonItem = listJson[i];
-            shared_ptr<Image> item (new Image(jsonItem));
-            string imageId = item->getImageId();
-            m_imageList.insert(pair<string, shared_ptr<Image> >(imageId, item));
-         }
+         const Json::Value& jsonItem = listJson[i];
+         shared_ptr<MspImage> item (new MspImage(jsonItem));
+         string imageId = item->getImageId();
+         m_imageList.insert(pair<string, shared_ptr<MspImage> >(imageId, item));
       }
    }
 
@@ -156,7 +153,7 @@ void MensurationService::execute()
 
             // Establish image sensor model:
             string imageId = measurement->imageId;
-            std::map<std::string, std::shared_ptr<Image> >::iterator imgPtr =
+            std::map<std::string, std::shared_ptr<MspImage> >::iterator imgPtr =
                   m_imageList.find(imageId);
             if (imgPtr == m_imageList.end())
             {
@@ -164,7 +161,7 @@ void MensurationService::execute()
                throw ossimException(xmsg.str());
             }
 
-            shared_ptr<Image> image ( imgPtr->second );
+            shared_ptr<MspImage> image ( imgPtr->second );
             const csm::RasterGM *csm = image->getCsmSensorModel();
             if (csm == NULL)
             {

@@ -10,10 +10,10 @@
 #include<geometry/GroundPoint.h>
 #include<math/Matrix.h>
 #include <services/ServiceBase.h>
-#include <common/Image.h>
 #include <ossim/base/ossimDpt.h>
 #include <ossim/base/ossimGpt.h>
 #include <memory>
+#include "../common/MspImage.h"
 
 namespace ossimMsp
 {
@@ -64,7 +64,7 @@ public:
 private:
    void computeCELE(const MSP::GroundPoint& gpr, double& ce90, double& le90);
 
-   std::map<std::string, std::shared_ptr<Image> > m_imageList; // pair:(imageId, Image)
+   std::map<std::string, std::shared_ptr<MspImage> > m_imageList; // pair:(imageId, Image)
    std::vector<std::shared_ptr<PointObservation> > m_observations;
    bool m_resultsInEcf;
 };

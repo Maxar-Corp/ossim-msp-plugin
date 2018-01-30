@@ -22,18 +22,21 @@
 #include <SourceSelection/CandidateImage.h>
 #include <SourceSelection/SourceSelectionCriteria.h>
 #include <csm/RasterGM.h>
+#include <common/geometry/GroundPoint.h>
 #include <iostream>
 #include <math.h>
-#include <common/PhotoBlock.h>
+#include <common/MspPhotoBlock.h>
 #include <common/SessionManager.h>
-#include <common/Image.h>
 #include <json/json.h>
 #include <cstdlib>
 #include <iostream>
+#include "../common/MspImage.h"
 
 #define DEBUG_ON false
 
 using namespace std;
+using namespace ossim;
+
 namespace ossimMsp
 {
 SourceSelectionService::SourceSelectionService()
@@ -76,7 +79,7 @@ void SourceSelectionService::execute()
    // Loop to add all images:
    for (size_t i=0; i<ncands; ++i)
    {
-      shared_ptr<Image> image (m_candidateImages[i]);
+      shared_ptr<MspImage> image (m_candidateImages[i]);
       const char* fname = image->getFilename().c_str();
       const char* modelName =image->getModelName().c_str();
       const csm::RasterGM* model = image->getCsmSensorModel();
@@ -103,7 +106,7 @@ void SourceSelectionService::execute()
 
    // A new photoblock is initialized to represent images and eventually tiepoints and GCPs used
    // in this session. The candidate images will be added to it:
-   shared_ptr<PhotoBlock> photoblock (m_session->getPhotoBlock());
+   shared_ptr<MspPhotoBlock> photoblock (m_session->getPhotoBlock());
 
    // Process result. Need to correlate instance of sensor model with corresponding filename:
    m_meetsCriteria = mspAbsResult.meetsCriteria();
@@ -120,7 +123,8 @@ void SourceSelectionService::execute()
 #if DEBUG_ON
             clog<<"Image ID match: "<<imageID1<<endl;
 #endif
-            photoblock->addImage(m_candidateImages[j]);
+            shared_ptr<Image> image = dynamic_pointer_cast<Image>(m_candidateImages[j]);
+            photoblock->addImage(image);
             break;
          }
       }
@@ -157,7 +161,7 @@ void SourceSelectionService::loadJSON(const Json::Value& queryRoot)
    for ( int index = 0; index < numCandidates; ++index )
    {
       Json::Value candidate = candidates[index];
-      m_candidateImages.push_back(shared_ptr<Image>(new Image(candidate)));
+      m_candidateImages.push_back(shared_ptr<MspImage>(new MspImage(candidate)));
       m_mustUse.push_back(candidate["mustUse"].asBool());
    }
 }
@@ -201,7 +205,7 @@ void SourceSelectionService::computeAccuracy(MSP::SS::SourceSelectionResult& msp
                      <<"\n\t"<<cov[0][0]<<"   "<<cov[0][1]<<"   "<<cov[0][2]
                      <<"\n\t"<<cov[1][0]<<"   "<<cov[1][1]<<"   "<<cov[1][2]
                      <<"\n\t"<<cov[2][0]<<"   "<<cov[2][1]<<"   "<<cov[2][2]<<"\n"<<endl;
-   const std::vector<std::shared_ptr<Image> >& bestSubset =
+   const std::vector<std::shared_ptr<MspImage> >& bestSubset =
          m_session->getPhotoBlock()->getImageList();
    clog << "Results from 3DISA sourceSelect(): \n  Image File Selection:"<<endl;
    for (int i=0; i<bestSubset.size(); ++i)

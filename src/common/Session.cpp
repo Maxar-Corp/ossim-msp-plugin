@@ -4,7 +4,7 @@
 //     See top level LICENSE.txt file for license information
 //
 //**************************************************************************************************
-#include "PhotoBlock.h"
+#include "MspPhotoBlock.h"
 #include "Session.h"
 #include <ossim/base/ossimCommon.h>
 
@@ -13,14 +13,14 @@ using namespace std;
 namespace ossimMsp
 {
 Session::Session()
-:  m_photoBlock (new PhotoBlock)
+:  m_photoBlock (new MspPhotoBlock)
 {
    const string format = "%Y%m%d-%H%Mh%Ss";
    ossim::getFormattedTime(format, true, m_sessionId);
 }
 
 Session::Session(const Json::Value& json)
-:  m_photoBlock (new PhotoBlock)
+:  m_photoBlock (new MspPhotoBlock)
 {
    loadJSON(json);
 }
@@ -38,7 +38,7 @@ Session::~Session()
    m_photoBlock = 0;
 }
 
-shared_ptr<PhotoBlock> Session::getPhotoBlock()
+shared_ptr<MspPhotoBlock> Session::getPhotoBlock()
 {
    return m_photoBlock;
 }
@@ -60,7 +60,7 @@ void Session::loadJSON(const Json::Value& jsonNode)
    m_description = jsonNode["description"].asString();
 
    const Json::Value& pbNode = jsonNode["photoblock"];
-   m_photoBlock.reset(new PhotoBlock (pbNode));
+   m_photoBlock.reset(new MspPhotoBlock (pbNode));
 
 }
 }

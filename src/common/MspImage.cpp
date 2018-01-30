@@ -5,45 +5,45 @@
 //
 //**************************************************************************************************
 
-#include "Image.h"
+#include "MspImage.h"
+
 #include <ossim/base/ossimException.h>
 #include <ossim/base/ossimString.h>
 
 #include <SensorModel/SensorModelService.h>
 #include <SupportData/SupportDataService.h>
+#include <common/csm/BytestreamIsd.h>
+
 using namespace std;
+using namespace ossim;
 
 namespace ossimMsp
 {
 
-Image::Image(const std::string& imageId,
+MspImage::MspImage(const std::string& imageId,
              const std::string& filename,
              const std::string& modelName,
              unsigned int entryIndex,
              unsigned int band)
-:  m_imageId (imageId),
-   m_filename (filename),
-   m_entryIndex (entryIndex),
-   m_activeBand (band),
-   m_modelName (modelName),
+:  Image(imageId, filename, modelName, entryIndex, band),
    m_csmModel (0)
 {
 
 }
 
-Image::Image(const Json::Value& json_node)
-:  m_entryIndex (0)
-   , m_csmModel (0)
+MspImage::MspImage(const Json::Value& json_node)
+:  Image(json_node),
+   m_csmModel (0)
 {
    loadJSON(json_node);
 }
 
-Image::~Image()
+MspImage::~MspImage()
 {
    //m_handler.reset();
 }
 
-void Image::getAvailableModels(std::vector< pair<string, string> >& availableModels) const
+void MspImage::getAvailableModels(std::vector< pair<string, string> >& availableModels) const
 {
    // Fetch models from MSP:
    csm::Isd isd (m_filename); // TODO: Note entry index ignored here
@@ -52,41 +52,29 @@ void Image::getAvailableModels(std::vector< pair<string, string> >& availableMod
    availableModels = sms.getAllSupportedModels(isd);
 }
 
-void Image::loadJSON(const Json::Value& json_node)
+void MspImage::loadJSON(const Json::Value& json_node)
 {
    ostringstream xmsg;
    xmsg<<__FILE__<<": loadJSON(JSON) -- ";
 
-   // Parse JSON. Filename is required:
-   if (json_node.isMember("filename"))
-   {
-      m_filename = json_node["filename"].asString();
-   }
-   else
-   {
-      xmsg<<"JSON node missing required field: \"filename\".";
-      throw ossimException(xmsg.str());
-   }
+   ossim::Image::loadJSON(json_node);
 
    // Entry index defaults to 0 if not present:
-   if (json_node["entryIndex"].isUInt())
-      m_entryIndex = json_node["entryIndex"].asUInt();
-
-   // Band defaults to 1 if not present:
-   if (json_node["band"].isUInt())
-      m_activeBand = json_node["band"].asUInt();
+   if (json_node["imageIndex"].isUInt())
+      m_entryIndex = json_node["imageIndex"].asUInt();
 
    // Sensor model defaults to most accurate available if not provided (indicated by blank name):
-   if (json_node.isMember("sensorModel"))
-      m_modelName = json_node["sensorModel"].asString();
+   if (json_node.isMember("activeSensorModel"))
+      m_modelName = json_node["activeSensorModel"].asString();
 
    // Sensor model defaults to most accurate available if not provided (indicated by blank name):
-   if (json_node.isMember("imageId"))
-      m_imageId = json_node["imageId"].asString();
+   if (json_node.isMember("imageName"))
+      m_imageId = json_node["imageName"].asString();
 
    // Establish the sensor model. This also sets the official image ID, which will be overwritten
    // if JSON field provided
    string modelState = json_node["modelState"].asString();
+   string isdData = json_node["imageSupportData"].asString();
    if (modelState.size())
    {
       MSP::SMS::SensorModelService sms;
@@ -98,17 +86,30 @@ void Image::loadJSON(const Json::Value& json_node)
       else
          m_csmModel->setImageIdentifier(m_imageId);
    }
+   else if (isdData.size())
+   {
+      csm::BytestreamIsd isd (isdData);
+      MSP::SMS::SensorModelService sms;
+      csm::Model* base = sms.createModelFromISD(isd, m_modelName.c_str());
+      m_csmModel = dynamic_cast<csm::RasterGM*>(base);
+      string id = m_csmModel->getImageIdentifier();
+      if (id.compare("UNKNOWN"))
+         m_imageId = id;
+      else
+         m_csmModel->setImageIdentifier(m_imageId);
+   }
    else
    {
+      // Rely on image file for geometry info:
       getCsmSensorModel();
    }
 }
 
-void Image::saveJSON(Json::Value& json_node) const
+void MspImage::saveJSON(Json::Value& json_node) const
 {
    json_node.clear();
    json_node["imageId"] = m_imageId;
-   json_node["filename"] = m_filename;
+   json_node["filename"] = m_filename.string();
    json_node["entryIndex"] = m_entryIndex;
 
    if (m_modelName.size())
@@ -121,7 +122,7 @@ void Image::saveJSON(Json::Value& json_node) const
    }
 }
 
-void Image::setCsmSensorModel(const csm::RasterGM* model)
+void MspImage::setCsmSensorModel(const csm::RasterGM* model)
 {
    ostringstream xmsg;
    xmsg<<__FILE__<<": getCsmSensorModel() -- ";
@@ -150,7 +151,7 @@ void Image::setCsmSensorModel(const csm::RasterGM* model)
    m_modelName = model->getModelName();
 }
 
-const csm::RasterGM*  Image::getCsmSensorModel()
+const csm::RasterGM*  MspImage::getCsmSensorModel()
 {
    ostringstream xmsg;
    xmsg<<__FILE__<<": getCsmSensorModel() -- ";
