@@ -9,11 +9,11 @@
 
 #include <SourceSelection/SourceSelectionResult.h>
 #include <services/ServiceBase.h>
-#include <common/Image.h>
 #include <common/Session.h>
 #include <vector>
 #include <memory>
 #include <string>
+#include "../common/MspImage.h"
 
 
 namespace ossimMsp
@@ -52,7 +52,7 @@ private:
 
    ossimEcefPoint m_refPt;
    std::shared_ptr<Session> m_session;
-   std::vector< std::shared_ptr<Image> > m_candidateImages;
+   std::vector< std::shared_ptr<MspImage> > m_candidateImages;
    std::vector<bool> m_mustUse;
    double m_desiredCE90;
    double m_desiredLE90;

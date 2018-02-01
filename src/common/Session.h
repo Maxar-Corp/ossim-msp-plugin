@@ -8,7 +8,7 @@
 #define Session_HEADER 1
 
 #include <ossim/base/JsonInterface.h>
-#include <common/PhotoBlock.h>
+#include <common/MspPhotoBlock.h>
 #include <ossim/base/ossimReferenced.h>
 #include <string>
 #include <vector>
@@ -43,7 +43,7 @@ public:
 
    void setDescription(const std::string& description) { m_description = description; }
 
-   shared_ptr<PhotoBlock> getPhotoBlock();
+   shared_ptr<MspPhotoBlock> getPhotoBlock();
 
    const std::string& getSessionId() const { return m_sessionId; }
 
@@ -62,7 +62,7 @@ public:
 private:
    std::string m_sessionId;
    std::string m_description;
-   std::shared_ptr<PhotoBlock> m_photoBlock;
+   std::shared_ptr<MspPhotoBlock> m_photoBlock;
 
 };
 

@@ -4,7 +4,7 @@
 //     See top level LICENSE.txt file for license information
 //
 //**************************************************************************************************
-#include <common/PhotoBlock.h>
+#include <common/MspPhotoBlock.h>
 #include <iostream>
 #include <ossim/base/ossimException.h>
 
@@ -41,7 +41,7 @@ int main(int argc, char** argv)
          throw ossimException(xmsg.str());
       }
 
-      PhotoBlock pb (pbJson);
+      MspPhotoBlock pb (pbJson);
       Json::Value regurg;
       pb.saveJSON(regurg);
 

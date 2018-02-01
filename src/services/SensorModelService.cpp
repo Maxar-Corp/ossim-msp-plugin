@@ -37,7 +37,7 @@ void SensorModelService::loadJSON(const Json::Value& json)
 
    try
    {
-      m_image.reset(new Image(json));
+      m_image.reset(new MspImage(json));
    }
    catch (exception& e)
    {
@@ -125,7 +125,7 @@ void SensorModelService::execute(void)
 
 void SensorModelService::execute(const string& imageFile)
 {
-   m_image.reset(new Image("", imageFile, ""));
+   m_image.reset(new MspImage("", imageFile, ""));
    Json::Value json;
    saveJSON(json);
    cout << json << endl;
