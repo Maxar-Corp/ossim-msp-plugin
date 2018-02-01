@@ -64,16 +64,29 @@ void MspImage::loadJSON(const Json::Value& json_node)
       m_entryIndex = json_node["imageIndex"].asUInt();
 
    // Sensor model defaults to most accurate available if not provided (indicated by blank name):
-   if (json_node.isMember("activeSensorModel"))
-      m_modelName = json_node["activeSensorModel"].asString();
+   if (json_node.isMember("pluginID"))
+      m_modelName = json_node["pluginID"].asString();
 
-   // Sensor model defaults to most accurate available if not provided (indicated by blank name):
+   // The imageName here corresponds to imageId:
    if (json_node.isMember("imageName"))
       m_imageId = json_node["imageName"].asString();
+
+   // The model state may have also defined an image ID. Id so, it must be the same as the name:
+   if (json_node.isMember("imageID"))
+   {
+      string id_check = json_node["imageID"].asString();
+      if (id_check.compare(m_imageId))
+      {
+         xmsg<<"The image name and model's imageID do not correspond!. Cannot load image from JSON.";
+         throw ossimException(xmsg.str());
+      }
+   }
 
    // Establish the sensor model. This also sets the official image ID, which will be overwritten
    // if JSON field provided
    string modelState = json_node["modelState"].asString();
+   if (modelState.empty())
+      modelState = json_node["stateData"].asString();
    string isdData = json_node["imageSupportData"].asString();
    if (modelState.size())
    {

@@ -65,7 +65,16 @@ public:
    void setJointCovariance(const MSP::JointCovMatrix& cov) { m_mspJCM = cov; }
 
 private:
-   void fixTpImageIds();
+   std::shared_ptr<ossim::Image> findImage(const std::string& imageId);
+
+   std::string m_name;
+   std::string m_type;
+   std::string m_date;
+   std::string m_description;
+   std::string m_ownerProducer;
+   std::string m_classification;
+   std::string m_derivedFrom;
+   std::string m_disseminationCtrls;
 
    MSP::JointCovMatrix m_mspJCM;
 };

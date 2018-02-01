@@ -34,44 +34,112 @@ MspPhotoBlock::~MspPhotoBlock()
 
 void MspPhotoBlock::loadJSON(const Json::Value& pb_json_node)
 {
-   // Always do images first, as tiepoints will be using the image list to correct image ID:
-   if (pb_json_node.isMember("images"))
+   ostringstream xmsg;
+   xmsg<<__FILE__<<": loadJSON() -- ";
+
+   // Attempt to read the MSP-formatted JSON photoblock header first. If not successful, assume it
+   // is in ossim format:
+   if (!pb_json_node.isMember("photoBlockHeader"))
    {
-      const Json::Value& listJson = pb_json_node["images"];
-      unsigned int count = listJson.size();
+      ossim::PhotoBlock::loadJSON(pb_json_node);
+      return;
+   }
+
+   const Json::Value& pbheaderJson = pb_json_node["photoBlockHeader"];
+   m_name = pbheaderJson["name"].asString();
+   m_type = pbheaderJson["type"].asString();
+   m_date = pbheaderJson["date"].asString();
+   m_description = pbheaderJson["description"].asString();
+   m_ownerProducer = pbheaderJson["ownerProducer"].asString();
+   m_classification = pbheaderJson["classification"].asString();
+   m_derivedFrom = pbheaderJson["derivedFrom"].asString();
+   m_disseminationCtrls = pbheaderJson["disseminationControls"].asString();
+
+   // Always do images first, as tiepoints will be using the image list to:
+   if (pb_json_node.isMember("imageList"))
+   {
+      Json::Value imageListJson = pb_json_node["imageList"];
+      const Json::Value& stateListJson = pb_json_node["sensorModelStateList"];
+
+      // IMPORTANT NOTE: Assuming that the array entry order for images and sensor model states
+      // correspond:
+      unsigned int count = imageListJson.size();
+      if (count != stateListJson.size())
+      {
+         xmsg<<"The number of images and sensor model states provided do not correspond!. Cannot"
+               " load MSP PhotoBlock.";
+         throw ossimException(xmsg.str());
+      }
       for (unsigned int i=0; i<count; ++i)
       {
-         const Json::Value& jsonItem = listJson[i];
-         shared_ptr<ossim::Image> item (new MspImage(jsonItem));
+         Json::Value& imageJson = imageListJson[i];
+         imageJson.append(stateListJson[i]);
+
+         shared_ptr<ossim::Image> item (new MspImage(imageJson));
          m_imageList.push_back(item);
       }
    }
 
-   if (pb_json_node.isMember("groundPoints"))
+   // TODO: Implement GCP cross covariance capability
+
+   if (pb_json_node.isMember("groundPointList"))
    {
-      const Json::Value& listJson = pb_json_node["groundPoints"];
+      const Json::Value& listJson = pb_json_node["groundPointList"];
       unsigned int count = listJson.size();
       for (unsigned int i=0; i<count; ++i)
       {
-         const Json::Value& jsonItem = listJson[i];
+         Json::Value jsonItem = listJson[i];
+         jsonItem.append(pb_json_node["gpCrossCovList"]);
          shared_ptr<ossim::GroundControlPoint> item (new ossim::GroundControlPoint(jsonItem));
          m_gcpList.push_back(item);
       }
    }
 
-   if (pb_json_node.isMember("tiePoints"))
+
+   if (pb_json_node.isMember("imagePointList"))
    {
-      const Json::Value& listJson = pb_json_node["tiePoints"];
-      unsigned int count = listJson.size();
+      // This is a sequential list of image points, correlated only by point ID to other points.
+      // So need a multi map to store using pointID as key:
+      std::multimap<string, Json::Value> ipMap;
+      vector<string> pointIds;
+      const Json::Value& ipListJson = pb_json_node["imagePointList"];
+      unsigned int count = ipListJson.size();
       for (unsigned int i=0; i<count; ++i)
       {
-         const Json::Value& jsonItem = listJson[i];
-         shared_ptr<ossim::TiePoint> item (new ossim::TiePoint(jsonItem));
-         m_tiePointList.push_back(item);
+         const Json::Value& ipJson = ipListJson[i];
+         string pointId = ipJson["pointId"].asString();
+         pointIds.push_back(pointId);
+         ipMap.emplace(pointId, ipJson);
+      }
+
+      string imageId;
+      ossimDpt xy;
+      double sigmaX, sigmaY, rho;
+      NEWMAT::SymmetricMatrix cov;
+      typedef std::multimap<string, Json::Value>::iterator ipIterType;
+      std::pair < ipIterType, ipIterType > tpSet;
+      for (int i=0; i<pointIds.size(); i++)
+      {
+         shared_ptr<TiePoint> tp (new TiePoint);
+         tp->setTiePointId(pointIds[i]);
+         tpSet = ipMap.equal_range(pointIds[i]);
+         for (ipIterType ipIter=tpSet.first; ipIter!=tpSet.second; ++ipIter)
+         {
+            Json::Value& ipJson = ipIter->second;
+            shared_ptr<Image> image = findImage(ipJson["imageId"].asString());
+            xy.x = ipJson["column"].asDouble();
+            xy.y = ipJson["row"].asDouble();
+            sigmaX = ipJson["sigmaColumn"].asDouble();
+            sigmaY = ipJson["sigmaRow"].asDouble();
+            rho = ipJson["rho"].asDouble();
+            cov(0,0) = sigmaX*sigmaX;
+            cov(1,1) = sigmaY*sigmaY;
+            cov(0,1) = rho*sigmaX*sigmaY;
+            tp->setImagePoint(image, xy, cov);
+         }
+         m_tiePointList.push_back(tp);
       }
    }
-
-   fixTpImageIds();
 }
 
 void MspPhotoBlock::saveJSON(Json::Value& pbJSON) const
@@ -79,18 +147,20 @@ void MspPhotoBlock::saveJSON(Json::Value& pbJSON) const
    ossim::PhotoBlock::saveJSON(pbJSON);
 }
 
-void MspPhotoBlock::fixTpImageIds()
+shared_ptr<ossim::Image>  MspPhotoBlock::findImage(const std::string& imageId)
 {
-   unsigned int count = m_tiePointList.size();
-   for (unsigned int t=0; t<count; ++t)
+   // Loop over all images represented in this tiepoint:
+   shared_ptr<ossim::Image> image;
+   ossimString tpiid = ossimString(imageId).trim();
+   for (int t=0; t<m_imageList.size(); ++t)
    {
-      m_tiePointList[t]->fixTpImageIds(m_imageList);
-      unsigned int num_images = m_tiePointList[t]->getImageCount();
-      for (unsigned int i=0; i<num_images; ++i)
-      {
-
-      }
+      ossimString pbiid = ossimString(m_imageList[t]->getImageId()).trim();
+      if (pbiid != tpiid)
+         continue;
+      image = m_imageList[t];
+      break;
    }
+   return image;
 }
 
 void MspPhotoBlock::getCsmModels(MSP::CsmSensorModelList& csmModelList)
