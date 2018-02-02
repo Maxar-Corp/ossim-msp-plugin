@@ -11,8 +11,10 @@
 #include <PointExtraction/PointExtractionService.h>
 #include <csmutil/CsmSensorModelList.h>
 #include <common/SessionManager.h>
+#include <common/math/Matrix.h>
 
 using namespace std;
+using namespace ossim;
 
 namespace ossimMsp
 {
@@ -52,7 +54,7 @@ void TriangulationService::loadJSON(const Json::Value& queryRoot)
          xmsg <<__FILE__<<":"<<__LINE__<<" Fatal: Null photoblock returned!";
          throw ossimException(xmsg.str());
       }
-      m_photoBlock.reset(new PhotoBlock(pbJson));
+      m_photoBlock.reset(new MspPhotoBlock(pbJson));
    }
 }
 
@@ -118,7 +120,7 @@ void TriangulationService::fillGcpList(MSP::GroundPointList& mspGroundPts)
    NEWMAT::SymmetricMatrix ossimCov;
    mspCov.zero();
    ossimEcefPoint ecf;
-   const vector< shared_ptr<GroundControlPoint> >& gcpList = m_photoBlock->getGroundPointList();
+   const GcpList& gcpList = m_photoBlock->getGroundPointList();
    for (int g=0; g<gcpList.size(); ++g)
    {
       ecf = gcpList[g]->getECF();

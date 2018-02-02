@@ -10,7 +10,7 @@
 #include <geometry/ImagePoint.h>
 #include <geometry/GroundPoint.h>
 #include <services/ServiceBase.h>
-#include <common/PhotoBlock.h>
+#include <common/MspPhotoBlock.h>
 #include <PointExtraction/TriangulationResult.h>
 #include <memory>
 
@@ -49,7 +49,7 @@ private:
    void fillGcpList(MSP::GroundPointList& mspGroundPts);
    void fillTpList(MSP::ImagePointList& mspImagePts);
 
-   std::shared_ptr<PhotoBlock> m_photoBlock;
+   std::shared_ptr<MspPhotoBlock> m_photoBlock;
    std::shared_ptr<MSP::PES::TriangulationResult> m_triangulationResult;
 
 };
