@@ -158,7 +158,7 @@ void ossimMspTool::loadJSON(const Json::Value& queryRoot)
          m_mspService.reset(new MensurationService);
       else
       {
-         xmsg<<"Wrong service <"<<serviceName<<"> requested."<<endl;
+         xmsg<<"Unsupported service <"<<serviceName<<"> requested."<<endl;
          throw ossimException(xmsg.str());
       }
 
