@@ -72,13 +72,15 @@ void MensurationService::loadJSON(const Json::Value& queryRoot)
    if (coordSystem == "ecf")
       m_resultsInEcf = true;
 
-   const Json::Value& observations = queryRoot["observations"];
-   for (unsigned int p=0; p<observations.size(); ++p)
+   Json::Value observations = queryRoot["observations"];
+   if (observations.empty())
+      observations = queryRoot["photoblock"]["tiePoints"];
+   for (auto &observation : observations)
    {
       shared_ptr<PointObservation> obs (new PointObservation);
-      obs->pointId = observations[p]["id"].asString();
+      obs->pointId = observation["id"].asString();
       //cout<<"pointId: "<<obs->pointId<<endl;
-      const Json::Value& imagePointList = observations[p]["imagePoints"];
+      const Json::Value& imagePointList = observation["imagePoints"];
       for (unsigned int i=0; i<imagePointList.size(); ++i)
       {
          shared_ptr<Measurement> measurement (new Measurement);
@@ -113,16 +115,16 @@ void MensurationService::saveJSON(Json::Value& json) const
 
       if (m_resultsInEcf)
       {
-         observation["ecfPoint"]["x"] = m_observations[p]->ecfPt.x();
-         observation["ecfPoint"]["y"] = m_observations[p]->ecfPt.y();
-         observation["ecfPoint"]["z"] = m_observations[p]->ecfPt.z();
+         observation["x"] = m_observations[p]->ecfPt.x();
+         observation["y"] = m_observations[p]->ecfPt.y();
+         observation["z"] = m_observations[p]->ecfPt.z();
       }
       else
       {
          ossimGpt geoPt (m_observations[p]->ecfPt);
-         observation["geoPoint"]["lat"] = geoPt.lat;
-         observation["geoPoint"]["lon"] = geoPt.lon;
-         observation["geoPoint"]["hgt"] = geoPt.hgt;
+         observation["lat"] = geoPt.lat;
+         observation["lon"] = geoPt.lon;
+         observation["hgt"] = geoPt.hgt;
       }
       mensurationReport[p] = observation;
    }
