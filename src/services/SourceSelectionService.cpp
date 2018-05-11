@@ -11,28 +11,12 @@
 // MSP interface functionality there. Because I need CK's code to create CSM model from image
 // filename.
 
-#include <Config.h>
 #include <services/SourceSelectionService.h>
-#include <ossim/base/ossimException.h>
-#include <ossim/base/ossimGpt.h>
-#include <ossim/base/ossimEcefPoint.h>
-#include <ossim/base/ossimFilename.h>
-#include <ossim/base/ossimDirectory.h>
 #include <SourceSelection/SourceSelectionService.h>
-#include <SourceSelection/CandidateImage.h>
-#include <SourceSelection/SourceSelectionCriteria.h>
-#include <csm/RasterGM.h>
-#include <common/geometry/GroundPoint.h>
-#include <iostream>
-#include <math.h>
-#include <common/MspPhotoBlock.h>
 #include <common/SessionManager.h>
-#include <json/json.h>
-#include <cstdlib>
-#include <iostream>
-#include "../common/MspImage.h"
+#include <ossim/base/ossimTrace.h>
 
-#define DEBUG_ON false
+static ossimTrace traceDebug("SourceSelectionService:debug");
 
 using namespace std;
 using namespace ossim;
@@ -120,9 +104,10 @@ void SourceSelectionService::execute()
          if (imageID1.compare(imageID2) == 0)
          {
             // found match. Need to instantiate the Image object and save to list:
-#if DEBUG_ON
-            clog<<"Image ID match: "<<imageID1<<endl;
-#endif
+            if (traceDebug())
+            {
+               clog << "Image ID match: " << imageID1 << endl;
+            }
             shared_ptr<Image> image = dynamic_pointer_cast<Image>(m_candidateImages[j]);
             photoblock->addImage(image);
             break;
@@ -169,7 +154,6 @@ void SourceSelectionService::loadJSON(const Json::Value& queryRoot)
 void SourceSelectionService::saveJSON(Json::Value& responseJson) const
 {
    // Represent results in response JSON:
-   double estimatedCE90, estimatedLE90;
    responseJson["predictedAccuracy"]["ce90"] = m_estimatedCE90;
    responseJson["predictedAccuracy"]["le90"] = m_estimatedLE90;
    responseJson["meetsCriteria"] = m_meetsCriteria;
@@ -197,25 +181,26 @@ void SourceSelectionService::computeAccuracy(MSP::SS::SourceSelectionResult& msp
    m_estimatedCE90 = (1.6545 - 0.13913*c + 0.6324*c*c) * su;
    m_estimatedLE90 = 1.6449 * sqrt(cov[2][2]);
 
-#if DEBUG_ON
-   // Report results to stdout:
-   clog << "\nResults from MSP sourceSelect(): ";
-   clog << mspAbsResult.toString() << endl << endl;
-   clog<<"ENU Covariance: "
-                     <<"\n\t"<<cov[0][0]<<"   "<<cov[0][1]<<"   "<<cov[0][2]
-                     <<"\n\t"<<cov[1][0]<<"   "<<cov[1][1]<<"   "<<cov[1][2]
-                     <<"\n\t"<<cov[2][0]<<"   "<<cov[2][1]<<"   "<<cov[2][2]<<"\n"<<endl;
-   const std::vector<std::shared_ptr<MspImage> >& bestSubset =
-         m_session->getPhotoBlock()->getImageList();
-   clog << "Results from 3DISA sourceSelect(): \n  Image File Selection:"<<endl;
-   for (int i=0; i<bestSubset.size(); ++i)
+   if (traceDebug())
    {
-      clog<<"    "<<bestSubset[i]<<endl;
+      // Report results to stdout:
+      clog << "\nResults from MSP sourceSelect(): ";
+      clog << mspAbsResult.toString() << endl << endl;
+      clog << "ENU Covariance: "
+           << "\n\t" << cov[0][0] << "   " << cov[0][1] << "   " << cov[0][2]
+           << "\n\t" << cov[1][0] << "   " << cov[1][1] << "   " << cov[1][2]
+           << "\n\t" << cov[2][0] << "   " << cov[2][1] << "   " << cov[2][2] << "\n" << endl;
+      const std::vector<std::shared_ptr<Image> > &bestSubset =
+              m_session->getPhotoBlock()->getImageList();
+      clog << "Results from 3DISA sourceSelect(): \n  Image File Selection:" << endl;
+      for (int i = 0; i < bestSubset.size(); ++i)
+      {
+         clog << "    " << bestSubset[i] << endl;
+      }
+      clog << "\n  Computed CE90: " << m_estimatedCE90 << endl;
+      clog << "  Computed LE90: " << m_estimatedLE90 << endl;
+      clog << "  meets criteria: " << m_meetsCriteria << "\n" << endl;
    }
-   clog<<"\n  Computed CE90: "<<m_estimatedCE90<<endl;
-   clog<<"  Computed LE90: "<<m_estimatedLE90<<endl;
-   clog<<"  meets criteria: "<<m_meetsCriteria<<"\n"<<endl;
-#endif
 }
 
 } // end O2REG namespace

@@ -72,8 +72,8 @@ set (CMAKE_CXX_STANDARD 11)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src )
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/apps )
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/test )
+#add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/apps )
+#add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/test )
 
 
 message("################## end of ossim-msp-plugin setup #########################")

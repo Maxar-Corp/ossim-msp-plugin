@@ -118,15 +118,20 @@ void MspPhotoBlock::loadJSON(const Json::Value& pb_json_node)
       NEWMAT::SymmetricMatrix cov;
       typedef std::multimap<string, Json::Value>::iterator ipIterType;
       std::pair < ipIterType, ipIterType > tpSet;
-      for (int i=0; i<pointIds.size(); i++)
+      for (auto &pointId : pointIds)
       {
          shared_ptr<TiePoint> tp (new TiePoint);
-         tp->setTiePointId(pointIds[i]);
-         tpSet = ipMap.equal_range(pointIds[i]);
+         tp->setTiePointId(pointId);
+         tpSet = ipMap.equal_range(pointId);
          for (ipIterType ipIter=tpSet.first; ipIter!=tpSet.second; ++ipIter)
          {
             Json::Value& ipJson = ipIter->second;
             shared_ptr<Image> image = findImage(ipJson["imageId"].asString());
+            if (!image)
+            {
+               tp.reset();
+               continue;
+            }
             xy.x = ipJson["column"].asDouble();
             xy.y = ipJson["row"].asDouble();
             sigmaX = ipJson["sigmaColumn"].asDouble();
@@ -137,7 +142,8 @@ void MspPhotoBlock::loadJSON(const Json::Value& pb_json_node)
             cov(0,1) = rho*sigmaX*sigmaY;
             tp->setImagePoint(image, xy, cov);
          }
-         m_tiePointList.push_back(tp);
+         if (tp->getImageCount() >= 2)
+            m_tiePointList.push_back(tp);
       }
    }
 }

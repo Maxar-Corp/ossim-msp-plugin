@@ -43,3 +43,9 @@ OSSIM_LINK_LIBRARY(${LIB_NAME}
                    SOURCE_FILES "${OSSIM_MSP_SRCS}"
                    INSTALL_LIB)
 
+
+OSSIM_SAVE_INCLUDE_DIRECTORIES()
+GET_DIRECTORY_PROPERTY(output INCLUDE_DIRECTORIES)
+MESSAGE("#############    ##################   ###############   #############")
+MESSAGE("Include directories: ${output}")
+
